@@ -1,7 +1,7 @@
-import io
 import logging
 import os
 import base64
+import hashlib
 import re
 from ..exceptions import UnsupportedFormatError
 from .doc_analysis_chunker import DocAnalysisChunker
@@ -265,10 +265,17 @@ class MultimodalChunker(DocAnalysisChunker):
                     #     )
                     #     chunk_content = chunk_content.replace(f"<figure{figure_id}>", "")
                     #     continue
-
-
+                    
                     # 3) Upload to blob
-                    blob_name = f"{self.filename}-figure-{figure_id}.png"
+
+                    # Generate deterministic 8-digit suffix based on self.url
+                    hash_digest = hashlib.md5(self.url.encode()).hexdigest()
+                    hash_int = int(hash_digest[:8], 16)  # Take first 8 hex chars and convert to int
+                    deterministic_suffix = f"{hash_int % 100000000:08d}"  # Ensure it's 8 digits
+
+                    # Compose the blob name with the deterministic suffix
+                    blob_name = f"{self.filename}-figure-{figure_id}-{deterministic_suffix}.png"
+   
                     url = self._upload_figure_blob(image_binary, blob_name)
 
                     # 4) Generate caption
